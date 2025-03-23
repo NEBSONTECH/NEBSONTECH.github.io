@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilan Financier avec Export PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        label {
+            flex: 1;
+            font-weight: bold;
+        }
+        input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .total {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #ddd;
+        }
+        .date {
+            text-align: right;
+            margin-top: 20px;
+            font-style: italic;
+            color: #666;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .pdf-button {
+            background-color: #ff5722;
+        }
+        .pdf-button:hover {
+            background-color: #e64a19;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .history-container {
+            margin-top: 30px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .history-item {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        .history-item:hover {
+            background-color: #f8f8f8;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 15px;
+            background-color: #e0e0e0;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .export-import {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f4fa;
+            border-radius: 8px;
+        }
+        .pdf-preview {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            overflow: auto;
+        }
+        .pdf-content {
+            background-color: white;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 30px auto;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .close-preview {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+    <!-- Ajout de jsPDF pour la génération de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('current-tab')">Bilan Actuel</div>
+        <div class="tab" onclick="switchTab('history-tab')">Historique</div>
+    </div>
+
+    <div id="current-tab" class="tab-content active">
+        <div class="container">
+            <h1>Bilan Financier</h1>
+            
+            <div class="form-group">
+                <label for="soldeOrange">SOLDE ORANGE SIM 1 & 2:</label>
+                <input type="number" id="soldeOrange" value="1837174">
+            </div>
+            
+            <div class="form-group">
+                <label for="soldeMoov">SOLDE MOOV:</label>
+                <input type="number" id="soldeMoov" value="47314">
+            </div>
+            
+            <div class="form-group">
+                <label for="soldeWave">SOLDE WAVE:</label>
+                <input type="number" id="soldeWave" value="164685">
+            </div>
+            
+            <div class="form-group">
+                <label for="soldeSank">SANK:</label>
+                <input type="number" id="soldeSank" value="21252">
+            </div>
+            
+            <div class="form-group">
+                <label for="soldeCorisMoney">SOLDE CORIS MONEY:</label>
+                <input type="number" id="soldeCorisMoney" value="182000">
+            </div>
+            
+            <div class="form-group">
+                <label for="soldeUnites">SOLDE des Unites:</label>
+                <input type="number" id="soldeUnites" value="209321">
+            </div>
+            
+            <div class="form-group">
+                <label for="soldeArgentCash">SOLDE ARGENT EN CASH:</label>
+                <input type="number" id="soldeArgentCash" value="345500">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description (facultatif):</label>
+                <input type="text" id="description" placeholder="Ex: Bilan mensuel de mars">
+            </div>
+            
+            <div class="button-group">
+                <div>
+                    <button onclick="calculerBilan()">Calculer le total</button>
+                    <button onclick="sauvegarderBilan()">Sauvegarder ce bilan</button>
+                    <button onclick="genererPDF()" class="pdf-button">Exporter en PDF</button>
+                </div>
+                <button onclick="exporterDonnees()">Exporter les données</button>
+            </div>
+            
+            <div class="total">
+                SOLDE Total: <span id="soldeTotal">2807246</span>
+            </div>
+            
+            <div class="date">
+                Bilan du <span id="dateCalcul">23/03/2025</span>
+            </div>
+        </div>
+
+        <div class="export-import">
+            <h3>Importer des données</h3>
+            <input type="file" id="importFile" accept=".json">
+            <button onclick="importerDonnees()">Importer</button>
+        </div>
+    </div>
+
+    <div id="history-tab" class="tab-content">
+        <div class="history-container">
+            <h2>Historique des Bilans</h2>
+            <div id="history-list">
+                <!-- L'historique sera inséré ici -->
+                <div class="history-item">Aucun bilan sauvegardé pour le moment.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Élément pour la prévisualisation du PDF -->
+    <div id="pdf-preview" class="pdf-preview">
+        <span class="close-preview" onclick="fermerPreview()">&times;</span>
+        <div id="pdf-content" class="pdf-content">
+            <!-- Le contenu du PDF sera inséré ici -->
+        </div>
+    </div>
+
+    <!-- Template pour la génération de PDF -->
+    <div id="pdf-template" style="display: none;">
+        <div id="pdf-header" style="text-align: center; margin-bottom: 30px;">
+            <h1>BILAN FINANCIER</h1>
+            <p id="pdf-date">Date: </p>
+        </div>
+        
+        <div id="pdf-details">
+            <table>
+                <thead>
+                    <tr>
+                        <th>COMPTE</th>
+                        <th>MONTANT</th>
+                    </tr>
+                </thead>
+                <tbody id="pdf-body">
+                    <!-- Les données seront insérées ici -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>SOLDE TOTAL</th>
+                        <th id="pdf-total"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <div id="pdf-footer" style="margin-top: 50px; text-align: center;">
+            <p id="pdf-description"></p>
+        </div>
+    </div>
+
+    <script>
+        // Initialiser les variables globales pour jsPDF
+        var jsPDF = window.jspdf.jsPDF;
+        
+        // Initialiser le stockage local si nécessaire
+        if (!localStorage.getItem('bilansHistorique')) {
+            localStorage.setItem('bilansHistorique', JSON.stringify([]));
+        }
+
+        function switchTab(tabId) {
+            // Désactiver tous les onglets
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Activer l'onglet sélectionné
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            
+            // Si l'onglet d'historique est sélectionné, mettre à jour l'affichage
+            if (tabId === 'history-tab') {
+                afficherHistorique();
+            }
+        }
+
+        function calculerBilan() {
+            // Récupérer les valeurs des différents soldes
+            const soldeOrange = parseFloat(document.getElementById('soldeOrange').value) || 0;
+            const soldeMoov = parseFloat(document.getElementById('soldeMoov').value) || 0;
+            const soldeWave = parseFloat(document.getElementById('soldeWave').value) || 0;
+            const soldeSank = parseFloat(document.getElementById('soldeSank').value) || 0;
+            const soldeCorisMoney = parseFloat(document.getElementById('soldeCorisMoney').value) || 0;
+            const soldeUnites = parseFloat(document.getElementById('soldeUnites').value) || 0;
+            const soldeArgentCash = parseFloat(document.getElementById('soldeArgentCash').value) || 0;
+            
+            // Calculer le solde total
+            const soldeTotal = soldeOrange + soldeMoov + soldeWave + soldeSank + soldeCorisMoney + soldeUnites + soldeArgentCash;
+            
+            // Afficher le résultat
+            document.getElementById('soldeTotal').textContent = soldeTotal.toLocaleString();
+            
+            // Mettre à jour la date de calcul
+            const dateActuelle = new Date();
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            document.getElementById('dateCalcul').textContent = dateActuelle.toLocaleDateString('fr-FR', options);
+            
+            return soldeTotal;
+        }
+        
+        function sauvegarderBilan() {
+            // Récupérer toutes les valeurs actuelles
+            const soldeOrange = parseFloat(document.getElementById('soldeOrange').value) || 0;
+            const soldeMoov = parseFloat(document.getElementById('soldeMoov').value) || 0;
+            const soldeWave = parseFloat(document.getElementById('soldeWave').value) || 0;
+            const soldeSank = parseFloat(document.getElementById('soldeSank').value) || 0;
+            const soldeCorisMoney = parseFloat(document.getElementById('soldeCorisMoney').value) || 0;
+            const soldeUnites = parseFloat(document.getElementById('soldeUnites').value) || 0;
+            const soldeArgentCash = parseFloat(document.getElementById('soldeArgentCash').value) || 0;
+            
+            // Calculer le solde total
+            const soldeTotal = calculerBilan();
+            
+            // Obtenir la date actuelle
+            const dateActuelle = new Date();
+            const dateFormatee = dateActuelle.toLocaleDateString('fr-FR');
+            const heureFormatee = dateActuelle.toLocaleTimeString('fr-FR');
+            
+            // Obtenir description (si fournie)
+            const description = document.getElementById('description').value || `Bilan du ${dateFormatee}`;
+            
+            // Créer l'objet de bilan
+            const bilan = {
+                id: Date.now(), // Identifiant unique basé sur le timestamp
+                date: dateFormatee,
+                heure: heureFormatee,
+                description: description,
+                soldes: {
+                    orange: soldeOrange,
+                    moov: soldeMoov,
+                    wave: soldeWave,
+                    sank: soldeSank,
+                    corisMoney: soldeCorisMoney,
+                    unites: soldeUnites,
+                    argentCash: soldeArgentCash
+                },
+                total: soldeTotal
+            };
+            
+            // Récupérer l'historique existant
+            const historique = JSON.parse(localStorage.getItem('bilansHistorique'));
+            
+            // Ajouter le nouveau bilan
+            historique.push(bilan);
+            
+            // Sauvegarder l'historique mis à jour
+            localStorage.setItem('bilansHistorique', JSON.stringify(historique));
+            
+            // Confirmer la sauvegarde
+            alert('Bilan sauvegardé avec succès !');
+            
+            // Mettre à jour l'affichage de l'historique si visible
+            if (document.getElementById('history-tab').classList.contains('active')) {
+                afficherHistorique();
+            }
+        }
+        
+        function afficherHistorique() {
+            const historique = JSON.parse(localStorage.getItem('bilansHistorique'));
+            const historyList = document.getElementById('history-list');
+            
+            // Effacer le contenu actuel
+            historyList.innerHTML = '';
+            
+            if (historique.length === 0) {
+                historyList.innerHTML = '<div class="history-item">Aucun bilan sauvegardé pour le moment.</div>';
+                return;
+            }
+            
+            // Trier l'historique par date (du plus récent au plus ancien)
+            historique.sort((a, b) => b.id - a.id);
+            
+            // Ajouter chaque bilan à la liste
+            historique.forEach(bilan => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.onclick = () => chargerBilan(bilan.id);
+                
+                item.innerHTML = `
+                    <strong>${bilan.description}</strong><br>
+                    Date: ${bilan.date} à ${bilan.heure}<br>
+                    <strong>Total: ${bilan.total.toLocaleString()} </strong>
+                    <div class="action-buttons" style="float: right;">
+                        <button onclick="event.stopPropagation(); genererPDFHistorique(${bilan.id})" style="background-color: #ff5722;">PDF</button>
+                        <button onclick="event.stopPropagation(); supprimerBilan(${bilan.id})" style="background-color: #f44336;">Supprimer</button>
+                    </div>
+                `;
+                
+                historyList.appendChild(item);
+            });
+        }
+        
+        function chargerBilan(id) {
+            const historique = JSON.parse(localStorage.getItem('bilansHistorique'));
+            const bilan = historique.find(b => b.id === id);
+            
+            if (!bilan) {
+                alert('Bilan introuvable !');
+                return;
+            }
+            
+            // Charger les valeurs dans le formulaire
+            document.getElementById('soldeOrange').value = bilan.soldes.orange;
+            document.getElementById('soldeMoov').value = bilan.soldes.moov;
+            document.getElementById('soldeWave').value = bilan.soldes.wave;
+            document.getElementById('soldeSank').value = bilan.soldes.sank;
+            document.getElementById('soldeCorisMoney').value = bilan.soldes.corisMoney;
+            document.getElementById('soldeUnites').value = bilan.soldes.unites;
+            document.getElementById('soldeArgentCash').value = bilan.soldes.argentCash;
+            document.getElementById('description').value = bilan.description;
+            
+            // Mettre à jour le total et la date
+            document.getElementById('soldeTotal').textContent = bilan.total.toLocaleString();
+            document.getElementById('dateCalcul').textContent = bilan.date;
+            
+            // Basculer vers l'onglet bilan
+            switchTab('current-tab');
+            
+            // Message de confirmation
+            alert(`Bilan du ${bilan.date} chargé avec succès !`);
+        }
+        
+        function supprimerBilan(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce bilan ?')) {
+                const historique = JSON.parse(localStorage.getItem('bilansHistorique'));
+                const nouvelHistorique = historique.filter(b => b.id !== id);
+                localStorage.setItem('bilansHistorique', JSON.stringify(nouvelHistorique));
+                afficherHistorique();
+            }
+        }
+        
+        function exporterDonnees() {
+            const historique = JSON.parse(localStorage.getItem('bilansHistorique'));
+            
+            // Créer un objet Blob contenant les données
+            const donnees = JSON.stringify(historique, null, 2);
+            const blob = new Blob([donnees], { type: 'application/json' });
+            
+            // Créer un lien de téléchargement
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'bilans_financiers.json';
+            
+            // Cliquer sur le lien pour déclencher le téléchargement
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        
+        function importerDonnees() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Veuillez sélectionner un fichier à importer.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (confirm(`Voulez-vous remplacer toutes les données existantes ou fusionner avec les données actuelles ?
+                    OK = Remplacer
+                    Annuler = Fusionner`)) {
+                        // Remplacer
+                        localStorage.setItem('bilansHistorique', JSON.stringify(importedData));
+                    } else {
+                        // Fusionner
+                        const existingData = JSON.parse(localStorage.getItem('bilansHistorique'));
+                        const mergedData = [...existingData, ...importedData];
+                        localStorage.setItem('bilansHistorique', JSON.stringify(mergedData));
+                    }
+                    
+                    alert('Importation réussie !');
+                    afficherHistorique();
+                } catch (error) {
+                    alert('Erreur lors de l\'importation du fichier: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // Nouvelle fonction pour générer un PDF
+        function genererPDF() {
+            // Récupérer les valeurs actuelles
+            const soldeOrange = parseFloat(document.getElementById('soldeOrange').value) || 0;
+            const soldeMoov = parseFloat(document.getElementById('soldeMoov').value) || 0;
+            const soldeWave = parseFloat(document.getElementById('soldeWave').value) || 0;
+            const soldeSank = parseFloat(document.getElementById('soldeSank').value) || 0;
+            const soldeCorisMoney = parseFloat(document.getElementById('soldeCorisMoney').value) || 0;
+            const soldeUnites = parseFloat(document.getElementById('soldeUnites').value) || 0;
+            const soldeArgentCash = parseFloat(document.getElementById('soldeArgentCash').value) || 0;
+            
+            // Calculer le total
+            const soldeTotal = soldeOrange + soldeMoov + soldeWave + soldeSank + soldeCorisMoney + soldeUnites + soldeArgentCash;
+            
+            // Obtenir la date et la description
+            const dateActuelle = new Date().toLocaleDateString('fr-FR');
+            const description = document.getElementById('description').value || `Bilan du ${dateActuelle}`;
+            
+            // Préparer le contenu pour le PDF
+            const pdfContent = document.getElementById('pdf-content');
+            
+            // Copier le modèle dans la prévisualisation
+            pdfContent.innerHTML = document.getElementById('pdf-template').innerHTML;
+            
+            // Mettre à jour le contenu avec les valeurs actuelles
+            pdfContent.querySelector('#pdf-date').textContent = `Date: ${dateActuelle}`;
+            pdfContent.querySelector('#pdf-description').textContent = description;
+            pdfContent.querySelector('#pdf-total').textContent = soldeTotal.toLocaleString() + ' F CFA';
+            
+            // Remplir le tableau avec les soldes
+            const pdfBody = pdfContent.querySelector('#pdf-body');
+            pdfBody.innerHTML = '';
+            
+            // Ajouter chaque ligne
+            const soldes = [
+                { nom: 'SOLDE ORANGE SIM 1 & 2', valeur: soldeOrange },
+                { nom: 'SOLDE MOOV', valeur: soldeMoov },
+                { nom: 'SOLDE WAVE', valeur: soldeWave },
+                { nom: 'SANK', valeur: soldeSank },
+                { nom: 'SOLDE CORIS MONEY', valeur: soldeCorisMoney },
+                { nom: 'SOLDE des Unites', valeur: soldeUnites },
+                { nom: 'SOLDE ARGENT EN CASH', valeur: soldeArgentCash }
+            ];
+            
+            soldes.forEach(solde => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${solde.nom}</td>
+                    <td>${solde.valeur.toLocaleString()} F CFA</td>
+                `;
+                pdfBody.appendChild(tr);
+            });
+            
+            // Afficher la prévisualisation
+            document.getElementById('pdf-preview').style.display = 'block';
+            
+            // Créer le PDF
+            creerPDF(description);
+        }
+        
+        // Génération de PDF à partir de l'historique
+        function genererPDFHistorique(id) {
+            event.stopPropagation(); // Empêcher le déclenchement du clic sur l'élément parent
+            
+            const historique = JSON.parse(localStorage.getItem('bilansHistorique'));
+            const bilan = historique.find(b => b.id === id);
+            
+            if (!bilan) {
+                alert('Bilan introuvable !');
+                return;
+            }
+            
+            // Préparer le contenu pour le PDF
+            const pdfContent = document.getElementById('pdf-content');
+            
+            // Copier le modèle dans la prévisualisation
+            pdfContent.innerHTML = document.getElementById('pdf-template').innerHTML;
+            
+            // Mettre à jour le contenu avec les valeurs du bilan
+            pdfContent.querySelector('#pdf-date').textContent = `Date: ${bilan.date}`;
+            pdfContent.querySelector('#pdf-description').textContent = bilan.description;
+            pdfContent.querySelector('#pdf-total').textContent = bilan.total.toLocaleString() + ' F CFA';
+            
+            // Remplir le tableau avec les soldes
+            const pdfBody = pdfContent.querySelector('#pdf-body');
+            pdfBody.innerHTML = '';
+            
+            // Ajouter chaque ligne
+            const soldes = [
+                { nom: 'SOLDE ORANGE SIM 1 & 2', valeur: bilan.soldes.orange },
+                { nom: 'SOLDE MOOV', valeur: bilan.soldes.moov },
+                { nom: 'SOLDE WAVE', valeur: bilan.soldes.wave },
+                { nom: 'SANK', valeur: bilan.soldes.sank },
+                { nom: 'SOLDE CORIS MONEY', valeur: bilan.soldes.corisMoney },
+                { nom: 'SOLDE des Unites', valeur: bilan.soldes.unites },
+                { nom: 'SOLDE ARGENT EN CASH', valeur: bilan.soldes.argentCash }
+            ];
+            
+            soldes.forEach(solde => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${solde.nom}</td>
+                    <td>${solde.valeur.toLocaleString()} F CFA</td>
+                `;
+                pdfBody.appendChild(tr);
+            });
+            
+            // Afficher la prévisualisation
+            document.getElementById('pdf-preview').style.display = 'block';
+            
+            // Créer le PDF
+            creerPDF(bilan.description);
+        }
+        
+        function fermerPreview() {
+            document.getElementById('pdf-preview').style.display = 'none';
+        }
+        
+        function creerPDF(nomFichier) {
+            // Utiliser html2canvas pour capturer la prévisualisation
+            html2canvas(document.getElementById('pdf-content')).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                
+                // Créer un nouveau document PDF (A4)
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; // A4 width in mm (portrait)
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                
+                // Télécharger le PDF
+                pdf.save(`${nomFichier.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
+            });
+        }
+        
+        // Calculer automatiquement au chargement
+        window.onload = calculerBilan;
+    </script>
+</body>
+</html>
